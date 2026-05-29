@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <script>
+        window.onerror = function(msg, url, line) {
+            alert("JS Error: " + msg + "\nLine: " + line);
+            return false;
+        };
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0c">
+    <title>BarberGold - Controle Financeiro & CRM</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Estilo Principal -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Supabase JS Client (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Header Fixo -->
+    <header class="app-header">
+        <div class="header-logo">
+            <span class="logo-gold">BARBER</span><span class="logo-light">GOLD</span>
+        </div>
+        <div class="header-actions">
+            <span class="badge-status-bar">
+                <i data-lucide="shield-check" class="gold-icon"></i>
+                <span class="status-text">Local Storage</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal SPA -->
+    <main class="app-content">
+        
+        <!-- ================= TELA: PAINEL / DASHBOARD ================= -->
+        <section id="page-dashboard" class="page-tab active">
+            <div class="welcome-section">
+                <h2>Painel Financeiro</h2>
+                <p class="subtitle">Visão geral do faturamento e CRM</p>
+            </div>
+
+            <!-- Filtros de Período -->
+            <div class="period-selector glass-card">
+                <button class="period-btn active" data-period="daily">Hoje</button>
+                <button class="period-btn" data-period="weekly">Esta Semana</button>
+                <button class="period-btn" data-period="monthly">Este Mês</button>
+            </div>
+
+            <!-- Cartões de Resumo (Métricas) -->
+            <div class="metrics-grid">
+                <div class="metric-card glass-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Faturamento Bruto</span>
+                        <div class="metric-icon-wrapper gold-glow"><i data-lucide="dollar-sign"></i></div>
+                    </div>
+                    <div class="metric-value" id="metric-revenue">R$ 0,00</div>
+                    <div class="metric-trend" id="metric-revenue-change"></div>
+                </div>
+
+                <div class="metric-card glass-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Serviços Feitos</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="scissors"></i></div>
+                    </div>
+                    <div class="metric-value" id="metric-services">0</div>
+                    <div class="metric-trend" id="metric-services-change"></div>
+                </div>
+
+                <div class="metric-card glass-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Comissões a Pagar</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="users"></i></div>
+                    </div>
+                    <div class="metric-value" id="metric-commission">R$ 0,00</div>
+                    <div class="metric-trend" id="metric-commission-change">Estimado</div>
+                </div>
+            </div>
+
+            <!-- Widget Alerta CRM: Clientes Sumidos -->
+            <div class="alert-card-wrapper" id="crm-missing-widget" style="display: none;">
+                <div class="alert-card warning-glass-card">
+                    <div class="alert-content">
+                        <div class="alert-icon-wrapper"><i data-lucide="alert-triangle"></i></div>
+                        <div class="alert-text">
+                            <span class="alert-title">Clientes Sumidos (30+ dias)</span>
+                            <span class="alert-desc" id="crm-missing-count">Carregando...</span>
+                        </div>
+                    </div>
+                    <button class="alert-action-btn" id="btn-go-to-missing">Ver Lista</button>
+                </div>
+            </div>
+
+            <!-- Gráfico de Faturamento -->
+            <div class="chart-section glass-card">
+                <div class="chart-header">
+                    <h3>Fluxo de Receita</h3>
+                    <span class="chart-subtitle">Histórico financeiro</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Serviços Mais Vendidos -->
+            <div class="popular-services-section glass-card">
+                <h3>Serviços Mais Populares</h3>
+                <div class="popular-list" id="popular-services-list">
+                    <!-- Gerado Dinamicamente -->
+                    <div class="empty-state">Nenhum atendimento registrado no período.</div>
+                </div>
+            </div>
+            
+            <div style="height: 80px;"></div> <!-- Espaçamento para o navbar -->
+        </section>
+
+        <!-- ================= TELA: ATENDIMENTOS ================= -->
+        <section id="page-appointments" class="page-tab">
+            <div class="section-title-wrapper">
+                <div>
+                    <h2>Atendimentos</h2>
+                    <p class="subtitle">Histórico diário de serviços</p>
+                </div>
+                <button class="btn-primary" id="btn-new-appointment-top">
+                    <i data-lucide="plus"></i> Novo
+                </button>
+            </div>
+
+            <!-- Lista de Atendimentos -->
+            <div class="appointments-list-wrapper">
+                <div class="date-navigator-wrapper glass-card">
+                    <button class="date-nav-btn" id="btn-prev-day"><i data-lucide="chevron-left"></i></button>
+                    <span class="current-date-display" id="date-display">Carregando...</span>
+                    <button class="date-nav-btn" id="btn-next-day"><i data-lucide="chevron-right"></i></button>
+                </div>
+
+                <div class="appointments-list" id="appointments-container">
+                    <!-- Gerado dinamicamente -->
+                    <div class="empty-state">
+                        <i data-lucide="scissors" class="large-empty-icon"></i>
+                        <p>Nenhum serviço registrado neste dia.</p>
+                        <button class="btn-secondary" id="btn-quick-add">Registrar Primeiro</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botão Flutuante (FAB) -->
+            <button class="fab-btn" id="btn-new-appointment-fab">
+                <i data-lucide="plus"></i>
+            </button>
+
+            <div style="height: 80px;"></div>
+        </section>
+
+        <!-- ================= TELA: CLIENTES (CRM) ================= -->
+        <section id="page-clients" class="page-tab">
+            <div class="section-title-wrapper">
+                <div>
+                    <h2>Clientes & CRM</h2>
+                    <p class="subtitle">Cadastro e controle de retorno</p>
+                </div>
+                <button class="btn-primary" id="btn-new-client">
+                    <i data-lucide="user-plus"></i> Novo
+                </button>
+            </div>
+
+            <!-- Pesquisa e Filtros -->
+            <div class="search-filter-wrapper glass-card">
+                <div class="search-input-container">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="client-search" placeholder="Pesquisar cliente por nome ou celular...">
+                </div>
+                <div class="crm-filters">
+                    <button class="filter-chip active" data-filter="all">Todos</button>
+                    <button class="filter-chip" data-filter="active">
+                        <span class="dot dot-green"></span> Em Dia
+                    </button>
+                    <button class="filter-chip" data-filter="warning">
+                        <span class="dot dot-yellow"></span> Atenção
+                    </button>
+                    <button class="filter-chip" data-filter="missing">
+                        <span class="dot dot-red"></span> Sumidos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Clientes -->
+            <div class="clients-list" id="clients-container">
+                <!-- Gerado dinamicamente -->
+                <div class="empty-state">
+                    <i data-lucide="users" class="large-empty-icon"></i>
+                    <p>Nenhum cliente cadastrado ainda.</p>
+                </div>
+            </div>
+
+            <div style="height: 80px;"></div>
+        </section>
+
+        <!-- ================= TELA: CONFIGURAÇÕES ================= -->
+        <section id="page-settings" class="page-tab">
+            <div class="welcome-section">
+                <h2>Configurações</h2>
+                <p class="subtitle">Gerenciar barbeiros, serviços e dados</p>
+            </div>
+
+            <!-- Bloco: Equipe de Barbeiros -->
+            <div class="settings-card glass-card">
+                <div class="settings-card-header">
+                    <div class="header-title-group">
+                        <i data-lucide="users" class="gold-icon"></i>
+                        <h3>Equipe de Barbeiros</h3>
+                    </div>
+                    <button class="btn-text-gold" id="btn-add-barber">+ Adicionar</button>
+                </div>
+                <div class="barbers-list" id="settings-barbers-container">
+                    <!-- Dinâmico -->
+                </div>
+            </div>
+
+            <!-- Bloco: Catálogo de Serviços -->
+            <div class="settings-card glass-card">
+                <div class="settings-card-header">
+                    <div class="header-title-group">
+                        <i data-lucide="scissors" class="gold-icon"></i>
+                        <h3>Serviços e Preços</h3>
+                    </div>
+                    <button class="btn-text-gold" id="btn-add-service">+ Adicionar</button>
+                </div>
+                <div class="services-settings-list" id="settings-services-container">
+                    <!-- Dinâmico -->
+                </div>
+            </div>
+
+            <!-- Bloco: Dados & Segurança (Backup) -->
+            <div class="settings-card glass-card">
+                <div class="settings-card-header">
+                    <div class="header-title-group">
+                        <i data-lucide="database" class="gold-icon"></i>
+                        <h3>Dados do Aplicativo</h3>
+                    </div>
+                </div>
+                <div class="database-actions">
+                    <p class="db-info-text">Toda a sua informação é salva de forma segura e 100% privada diretamente neste aparelho.</p>
+                    
+                    <div class="db-buttons-grid">
+                        <button class="btn-outline-gold" id="btn-export-backup">
+                            <i data-lucide="download"></i> Exportar Backup JSON
+                        </button>
+                        <label class="btn-outline-gold" id="btn-import-label">
+                            <i data-lucide="upload"></i> Importar Backup JSON
+                            <input type="file" id="btn-import-backup" accept=".json" style="display: none;">
+                        </label>
+                    </div>
+
+                    <button class="btn-danger-outline" id="btn-reset-db">
+                        <i data-lucide="trash-2"></i> Limpar Banco de Dados
+                    </button>
+                </div>
+            </div>
+
+            <div style="height: 100px;"></div>
+        </section>
+
+        <!-- ================= TELA: ASSINATURA SAAS ================= -->
+        <section id="page-subscription" class="page-tab">
+            <div class="welcome-section">
+                <h2>Assinatura</h2>
+                <p class="subtitle">Gerenciar licença do aplicativo</p>
+            </div>
+
+            <!-- Alerta de Suspensão (exibido apenas se vencido) -->
+            <div class="alert-card-wrapper" id="saas-paywall-alert" style="display: none;">
+                <div class="alert-card warning-glass-card" style="border-color: var(--danger); background: rgba(255, 69, 58, 0.08); padding: 16px;">
+                    <div class="alert-content" style="display: flex; align-items: center; gap: 12px;">
+                        <div class="alert-icon-wrapper text-danger" style="background: rgba(255, 69, 58, 0.15); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><i data-lucide="shield-alert"></i></div>
+                        <div class="alert-text">
+                            <span class="alert-title text-danger" style="font-weight: 700; font-size: 0.95rem; display: block;">Acesso Restrito</span>
+                            <span class="alert-desc" style="font-size: 0.8rem; color: var(--text-secondary);">Sua barbearia está com a mensalidade vencida. Renove abaixo para liberar o uso.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cartão de Status Premium -->
+            <div class="settings-card glass-card" style="padding: 20px; margin-top: 16px;">
+                <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div class="header-title-group" style="display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="shield-check" class="gold-icon"></i>
+                        <h3 id="saas-plan-shop-name" style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 600;">Carregando...</h3>
+                    </div>
+                    <span class="badge-status-bar" id="saas-plan-status-badge" style="font-size: 0.75rem; font-weight: 700;">⏳ Trial</span>
+                </div>
+                
+                <div class="saas-info-grid" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 16px; color: var(--text-primary);">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--text-secondary);">E-mail Cadastrado:</span>
+                        <strong id="saas-info-email">dono@barba.com</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--text-secondary);">Próxima Renovação:</span>
+                        <strong id="saas-info-expires">01/06/2026</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--text-secondary);">Mensalidade:</span>
+                        <strong class="gold-text">R$ 39,90/mês</strong>
+                    </div>
+                </div>
+
+                <!-- Detalhes do Plano Comercial -->
+                <div class="paywall-pricing-card" style="background: rgba(212, 175, 55, 0.03); border: 1px solid rgba(212, 175, 55, 0.15); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                    <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px; letter-spacing: 0.5px;">Plano Comercial Ilimitado</span>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">Sincronização automática em tempo real na nuvem, backup síncrono e CRM de 30 dias de recorrência de clientes com recall WhatsApp.</p>
+                </div>
+
+                <!-- Área de Pagamento Pix -->
+                <div class="paywall-pix-section" id="saas-pix-payment-box" style="text-align: left;">
+                    <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 8px;">Pague via Pix para liberar/renovar:</span>
+                    <div class="pix-code-container" style="display: flex; gap: 8px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border); border-radius: 10px; padding: 4px;">
+                        <input type="text" id="pix-copy-input" value="00020101021126580014br.gov.bcb.pix0136barbergold-receber-3990@pix.com.br520400005303986540539.905802BR5910BarberGold6009Sao Paulo62070503***6304ABCD" readonly style="flex: 1; font-size: 0.8rem; padding: 10px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-secondary); border: none;">
+                        <button class="btn-pix-copy btn-primary" id="btn-pix-copy" style="padding: 0 16px; border-radius: 8px; font-size: 0.8rem;"><i data-lucide="copy" style="width: 14px; height: 14px; margin-right: 4px;"></i> Copiar</button>
+                    </div>
+                    <p class="pix-help" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; text-align: center;">Copie o código Pix acima e pague na opção "Pix Copia e Cola" do seu banco.</p>
+                    
+                    <button class="btn-primary-gold" id="btn-paywall-check" style="width: 100%; margin-top: 14px; padding: 12px; font-weight: 700; font-size: 0.9rem;">Confirmar Pagamento Pix</button>
+                    <button class="btn-danger-outline" id="btn-paywall-logout" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 0.85rem; border-radius: 8px;">
+                        <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 4px;"></i> Desconectar Barbearia
+                    </button>
+                </div>
+            </div>
+
+            <div style="height: 100px;"></div>
+        </section>
+
+    </main>
+
+    <!-- ================= BARRA DE NAVEGAÇÃO INFERIOR ================= -->
+    <nav class="app-navbar">
+        <button class="nav-item active" data-target="page-dashboard">
+            <i data-lucide="line-chart"></i>
+            <span>Painel</span>
+        </button>
+        <button class="nav-item" data-target="page-appointments">
+            <i data-lucide="calendar"></i>
+            <span>Agenda</span>
+        </button>
+        <button class="nav-item" data-target="page-clients">
+            <i data-lucide="users"></i>
+            <span>Clientes</span>
+        </button>
+        <button class="nav-item" data-target="page-subscription">
+            <i data-lucide="shield-check"></i>
+            <span>Assinatura</span>
+        </button>
+        <button class="nav-item" data-target="page-settings">
+            <i data-lucide="settings"></i>
+            <span>Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- ================= MODAL / BOTTOM SHEET: NOVO ATENDIMENTO ================= -->
+    <div class="modal-overlay" id="modal-appointment">
+        <div class="bottom-sheet glass-card">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <h3 id="modal-appointment-title">Registrar Atendimento</h3>
+                <button class="btn-close-modal" id="btn-close-appt-modal"><i data-lucide="x"></i></button>
+            </div>
+            
+            <form id="form-appointment" class="sheet-form">
+                <input type="hidden" id="appt-id">
+                
+                <div class="form-group">
+                    <label for="appt-client">Cliente *</label>
+                    <select id="appt-client" required>
+                        <option value="" disabled selected>Selecione o Cliente</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="appt-barber">Barbeiro responsável *</label>
+                    <select id="appt-barber" required>
+                        <option value="" disabled selected>Selecione o Barbeiro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Serviços Realizados *</label>
+                    <div id="appt-services-container" class="services-checkbox-list">
+                        <!-- Carregado dinamicamente em app.js -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="appt-price">Valor cobrado (R$) *</label>
+                    <input type="number" id="appt-price" min="0" step="0.01" placeholder="0.00" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="appt-date">Data & Hora *</label>
+                    <input type="datetime-local" id="appt-date" required>
+                </div>
+
+                <div class="sheet-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel-appt-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary-gold" id="btn-save-appt-modal">Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: NOVO CLIENTE ================= -->
+    <div class="modal-overlay" id="modal-client">
+        <div class="modal-box glass-card">
+            <div class="modal-header">
+                <h3>Novo Cliente</h3>
+                <button class="btn-close-modal" id="btn-close-client-modal"><i data-lucide="x"></i></button>
+            </div>
+            
+            <form id="form-client" class="modal-form">
+                <div class="form-group">
+                    <label for="client-name">Nome do Cliente *</label>
+                    <input type="text" id="client-name" placeholder="Ex: Roberto Silva" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-phone">Celular (WhatsApp) *</label>
+                    <input type="tel" id="client-phone" placeholder="Ex: (11) 99999-9999" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="client-preferred-barber">Barbeiro Preferido (Opcional)</label>
+                    <select id="client-preferred-barber">
+                        <option value="">Nenhum</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel-client-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary-gold">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: DETALHES DO CLIENTE / CRM TIMELINE ================= -->
+    <div class="modal-overlay" id="modal-client-details">
+        <div class="bottom-sheet glass-card client-details-sheet">
+            <div class="sheet-drag-handle"></div>
+            <div class="sheet-header">
+                <h3>Perfil do Cliente</h3>
+                <button class="btn-close-modal" id="btn-close-details-modal"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="client-profile-header">
+                <div class="client-avatar-large" id="detail-avatar">R</div>
+                <div class="client-identity">
+                    <h2 id="detail-name">Roberto Silva</h2>
+                    <p id="detail-phone">(11) 99999-9999</p>
+                    <div class="detail-badges">
+                        <span id="detail-status-badge" class="badge-status-lg">🟢 Em Dia</span>
+                        <span id="detail-pref-barber" class="badge-barber-lg"><i data-lucide="scissors"></i> Preferido: Bruno</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Rápidas do Cliente -->
+            <div class="client-stats-grid">
+                <div class="client-stat-card">
+                    <span class="stat-lbl">Última visita</span>
+                    <span class="stat-val" id="detail-last-visit">15 dias atrás</span>
+                </div>
+                <div class="client-stat-card">
+                    <span class="stat-lbl">Total gasto</span>
+                    <span class="stat-val gold-text" id="detail-total-spent">R$ 180,00</span>
+                </div>
+                <div class="client-stat-card">
+                    <span class="stat-lbl">Visitas</span>
+                    <span class="stat-val" id="detail-total-visits">4</span>
+                </div>
+            </div>
+
+            <!-- Ação de Fidelidade (WhatsApp) -->
+            <div class="crm-retention-box" id="crm-retention-container" style="display: none;">
+                <div class="crm-retention-text">
+                    <strong>⚠️ Cliente sumido há mais de 30 dias!</strong>
+                    <p>Mande uma mensagem amigável no WhatsApp para reacender o contato.</p>
+                </div>
+                <a href="#" target="_blank" class="btn-whatsapp-action" id="btn-wa-recall">
+                    <i data-lucide="message-square"></i> Mandar WhatsApp
+                </a>
+            </div>
+
+            <!-- Linha do Tempo de Visitas -->
+            <div class="client-timeline-section">
+                <h4>Histórico de Atendimentos</h4>
+                <div class="timeline-container" id="detail-timeline">
+                    <!-- Dinâmico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: ADICIONAR BARBEIRO ================= -->
+    <div class="modal-overlay" id="modal-barber">
+        <div class="modal-box glass-card">
+            <div class="modal-header">
+                <h3>Adicionar Barbeiro</h3>
+                <button class="btn-close-modal" id="btn-close-barber-modal"><i data-lucide="x"></i></button>
+            </div>
+            
+            <form id="form-barber" class="modal-form">
+                <div class="form-group">
+                    <label for="barber-name">Nome do Barbeiro *</label>
+                    <input type="text" id="barber-name" placeholder="Ex: Lucas Barbeiro" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="barber-commission">Porcentagem de Comissão (%) *</label>
+                    <input type="number" id="barber-commission" min="0" max="100" placeholder="Ex: 50" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel-barber-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary-gold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: ADICIONAR SERVIÇO ================= -->
+    <div class="modal-overlay" id="modal-service">
+        <div class="modal-box glass-card">
+            <div class="modal-header">
+                <h3>Adicionar Serviço</h3>
+                <button class="btn-close-modal" id="btn-close-service-modal"><i data-lucide="x"></i></button>
+            </div>
+            
+            <form id="form-service" class="modal-form">
+                <div class="form-group">
+                    <label for="service-name">Nome do Serviço *</label>
+                    <input type="text" id="service-name" placeholder="Ex: Cabelo + Sobrancelha" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service-price">Preço Sugerido (R$) *</label>
+                    <input type="number" id="service-price" min="0" step="0.01" placeholder="Ex: 45.00" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel-service-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary-gold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= TELA DE LOGIN CHEIA (AUTH PAGE) ================= -->
+    <div class="saas-login-page active" id="saas-auth-page">
+        <div class="saas-auth-box glass-card">
+            <div class="saas-logo text-center">
+                <span class="logo-gold">BARBER</span><span class="logo-light">GOLD</span>
+                <span class="saas-badge-mkt">SaaS</span>
+            </div>
+            <h2 class="saas-title" id="saas-auth-title">Acessar Painel</h2>
+            <p class="saas-subtitle" id="saas-auth-subtitle">Entre com os dados da sua barbearia para continuar.</p>
+
+            <form id="form-saas-auth" class="saas-form">
+                <!-- Campo visível apenas no Cadastro -->
+                <div class="form-group" id="group-saas-shop-name" style="display: none;">
+                    <label for="saas-shop-name">Nome da Barbearia *</label>
+                    <input type="text" id="saas-shop-name" placeholder="Ex: Barbearia do Tio Sam">
+                </div>
+
+                <div class="form-group">
+                    <label for="saas-email">E-mail Comercial *</label>
+                    <input type="email" id="saas-email" placeholder="nome@suabarbearia.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="saas-password">Senha de Acesso *</label>
+                    <input type="password" id="saas-password" placeholder="Digite sua senha (mínimo 6 dígitos)" minlength="6" required>
+                </div>
+
+                <button type="submit" class="btn-primary-gold" id="btn-saas-auth-submit" style="width: 100%; margin-top: 10px; padding: 12px;">Entrar no Sistema</button>
+            </form>
+
+            <div class="saas-toggle-wrapper text-center" style="margin-top: 16px; font-size: 0.85rem;">
+                <span id="saas-toggle-text" style="color: var(--text-secondary);">Não tem uma conta comercial?</span>
+                <button class="btn-text-gold" id="btn-toggle-saas-auth" style="margin-left: 4px; font-size: 0.85rem; font-weight: 700;">Cadastrar Barbearia</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts da aplicação -->
+    <script src="app.js?v=6"></script>
+</body>
+</html>
