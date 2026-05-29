@@ -1775,6 +1775,13 @@ function initApp() {
     if (subLogoutBtn) {
         subLogoutBtn.addEventListener("click", () => saasLogout());
     }
+
+    // Registra o Service Worker para suporte a PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+            .catch(err => console.warn('Falha ao registrar o Service Worker:', err));
+    }
 }
 
 if (document.readyState === "loading") {

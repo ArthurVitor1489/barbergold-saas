@@ -2,7 +2,7 @@
   "name": "barbergold",
   "version": "1.0.0",
   "scripts": {
-    "build": "powershell -Command \"New-Item -ItemType Directory -Force -Path www; Copy-Item index.html www/; Copy-Item style.css www/; Copy-Item app.js www/\""
+    "build": "powershell -Command \"New-Item -ItemType Directory -Force -Path www; New-Item -ItemType Directory -Force -Path www/assets; Copy-Item index.html www/; Copy-Item style.css www/; Copy-Item app.js www/; Copy-Item manifest.json www/; Copy-Item sw.js www/; Copy-Item assets/icon-192.png www/assets/; Copy-Item assets/icon-512.png www/assets/\""
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
