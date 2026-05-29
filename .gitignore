@@ -1,0 +1,8 @@
+# Pastas de dependências
+node_modules/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
