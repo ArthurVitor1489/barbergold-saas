@@ -1,12 +1,19 @@
 {
+  "id": "barbergold-saas",
   "name": "BarberGold",
   "short_name": "BarberGold",
   "description": "Controle Financeiro e CRM para Barbearias Premium",
-  "start_url": "index.html",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
   "background_color": "#0a0a0c",
   "theme_color": "#0a0a0c",
   "orientation": "portrait",
+  "categories": ["business", "finance", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "assets/icon-192.png",
@@ -19,6 +26,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "url": "./index.html#page-agenda",
+      "description": "Ver a agenda de atendimentos"
+    },
+    {
+      "name": "Clientes",
+      "short_name": "Clientes",
+      "url": "./index.html#page-clients",
+      "description": "Ver a lista de clientes"
     }
   ]
 }
