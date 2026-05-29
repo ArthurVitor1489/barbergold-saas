@@ -2,6 +2,8 @@
    BARBERGOLD - LÓGICA PRINCIPAL (STATE MANAGEMENT & INTERFACES)
    ========================================================================== */
 
+/* global supabase, lucide, Chart */
+
 // --- CONFIGURAÇÃO SUPABASE SAAS (MENSALIDADE DE R$ 39,90) ---
 // Quando as credenciais abaixo estiverem vazias, o app entra automaticamente em "MODO DEMO SAAS".
 // O Modo Demo simula logins, cadastros de barbearias, concessão de 7 dias de trial e tela de bloqueio localmente!
